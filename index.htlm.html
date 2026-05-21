@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+<title>Départ Essai — Steveny Fleet Experience</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --s-black:  #0E0E0E;
+  --s-dark:   #1A1A1A;
+  --s-card:   #242424;
+  --s-border: #333333;
+  --s-red:    #E3000F;
+  --s-red-dk: #B50009;
+  --s-white:  #FFFFFF;
+  --s-gray:   #999999;
+  --s-green:  #22C55E;
+  --radius:   10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--s-black); color: var(--s-white); min-height: 100vh; }
+
+.header { background: var(--s-dark); border-bottom: 2px solid var(--s-red); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+.header-left { display: flex; align-items: center; gap: 14px; }
+.wordmark { font-size: 20px; font-weight: 800; letter-spacing: 0.04em; color: var(--s-white); text-transform: uppercase; }
+.wordmark span { color: var(--s-red); }
+.hsep { width: 1px; height: 28px; background: var(--s-border); }
+.hsub { font-size: 11px; color: var(--s-gray); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; line-height: 1.4; }
+.htag { background: transparent; border: 1px solid var(--s-border); color: var(--s-gray); font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 5px 14px; border-radius: 3px; white-space: nowrap; }
+
+.main { max-width: 680px; margin: 0 auto; padding: 24px 16px 88px; }
+
+.card { background: var(--s-card); border: 1px solid var(--s-border); border-radius: var(--radius); margin-bottom: 14px; overflow: hidden; }
+.card-head { display: flex; align-items: center; gap: 12px; padding: 13px 20px; border-bottom: 1px solid var(--s-border); }
+.cnum { width: 26px; height: 26px; background: var(--s-red); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; flex-shrink: 0; }
+.ctitle { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--s-white); }
+.card-body { padding: 18px 20px; }
+
+.fg { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+.full { grid-column: 1 / -1; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--s-gray); }
+.field input, .field select {
+  height: 44px; background: var(--s-dark); border: 1px solid var(--s-border);
+  border-radius: 6px; padding: 0 14px; font-size: 15px; color: var(--s-white);
+  outline: none; transition: border-color 0.15s; width: 100%; -webkit-appearance: none;
+}
+.field input::placeholder { color: #555; }
+.field input:focus, .field select:focus { border-color: var(--s-red); }
+.field select option { background: var(--s-dark); color: var(--s-white); }
+.field .date-fixed {
+  height: 44px; background: #1f1f1f; border: 1px solid var(--s-border);
+  border-radius: 6px; padding: 0 14px; font-size: 15px; color: #888;
+  display: flex; align-items: center; letter-spacing: 0.03em;
+}
+
+.photo-row { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+.photo-wrap > .plabel { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--s-gray); display: block; margin-bottom: 8px; }
+.pzone {
+  position: relative; border: 2px dashed var(--s-border); border-radius: var(--radius);
+  min-height: 126px; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 5px; cursor: pointer; overflow: hidden;
+  transition: border-color 0.15s; background: var(--s-dark);
+}
+.pzone:hover { border-color: var(--s-red); }
+.pzone.ok { border-color: var(--s-green); border-style: solid; }
+.pzone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.pz-ico { font-size: 28px; line-height: 1; }
+.pz-lbl { font-size: 13px; font-weight: 600; color: var(--s-white); text-align: center; padding: 0 8px; }
+.pz-sub { font-size: 11px; color: var(--s-gray); text-align: center; padding: 0 8px; }
+.pz-check { position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; background: var(--s-green); border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 12px; color: white; font-weight: 700; }
+.pzone.ok .pz-check { display: flex; }
+.photo-preview { max-width: 100%; max-height: 140px; object-fit: contain; display: none; border-radius: 6px; }
+
+.sig-wrap { border: 1px solid var(--s-border); border-radius: var(--radius); overflow: hidden; background: white; }
+.sig-canvas { width: 100%; height: 120px; display: block; cursor: crosshair; touch-action: none; }
+.sig-bar { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; background: var(--s-dark); border-top: 1px solid var(--s-border); }
+.sig-hint { font-size: 11px; color: var(--s-gray); font-style: italic; }
+.btn-clear { font-size: 11px; font-weight: 700; color: var(--s-red); background: none; border: none; cursor: pointer; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 0; }
+
+.cgv-box { background: var(--s-dark); border: 1px solid var(--s-border); border-radius: 6px; padding: 15px; max-height: 220px; overflow-y: auto; font-size: 12px; line-height: 1.75; color: #ccc; }
+.cgv-box h4 { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--s-red); margin: 14px 0 5px; }
+.cgv-box h4:first-child { margin-top: 0; }
+
+.check-row { display: flex; align-items: flex-start; gap: 12px; margin-top: 14px; }
+.check-row input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--s-red); cursor: pointer; margin-top: 2px; flex-shrink: 0; }
+.check-row label { font-size: 13px; color: var(--s-white); cursor: pointer; line-height: 1.5; font-weight: 500; }
+
+.dual-sig { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 4px; }
+.sig-block > .sig-title { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--s-gray); display: block; margin-bottom: 8px; }
+
+.div { height: 1px; background: var(--s-border); margin: 16px 0; }
+
+.gen-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--s-dark); border-top: 2px solid var(--s-red); padding: 11px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; z-index: 200; }
+.gen-hint { font-size: 11px; color: var(--s-gray); letter-spacing: 0.05em; }
+.btn-gen { background: var(--s-red); color: white; border: none; border-radius: 6px; padding: 12px 24px; font-size: 14px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; gap: 9px; transition: background 0.15s, transform 0.1s; white-space: nowrap; }
+.btn-gen:hover { background: var(--s-red-dk); }
+.btn-gen:active { transform: scale(0.97); }
+
+.status { padding: 10px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; margin-top: 14px; display: none; }
+.status.ok  { background: #14532d; color: #bbf7d0; display: block; }
+.status.err { background: #7f1d1d; color: #fecaca; display: block; }
+
+@media (max-width: 520px) {
+  .fg { grid-template-columns: 1fr; }
+  .photo-row { grid-template-columns: 1fr; }
+  .dual-sig { grid-template-columns: 1fr; }
+  .htag { font-size: 9px; padding: 4px 10px; }
+  .wordmark { font-size: 17px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="wordmark">STEVENY<span>.</span></div>
+    <div class="hsep"></div>
+    <div class="hsub">Fleet Experience<br>Départ d'essai</div>
+  </div>
+  <div class="htag">Steveny Fleet Experience</div>
+</div>
+
+<div class="main">
+
+  <!-- ① CONDUCTEUR -->
+  <div class="card">
+    <div class="card-head"><div class="cnum">1</div><div class="ctitle">Coordonnées du conducteur</div></div>
+    <div class="card-body">
+      <div class="fg">
+        <div class="field">
+          <label>Civilité</label>
+          <select id="civilite"><option value="">—</option><option>M.</option><option>Mme</option></select>
+        </div>
+        <div class="field">
+          <label>Date</label>
+          <div class="date-fixed">22 mai 2026</div>
+        </div>
+        <div class="field">
+          <label>Nom *</label>
+          <input type="text" id="nom" placeholder="Nom de famille">
+        </div>
+        <div class="field">
+          <label>Prénom *</label>
+          <input type="text" id="prenom" placeholder="Prénom">
+        </div>
+        <div class="field full">
+          <label>Adresse</label>
+          <input type="text" id="adresse" placeholder="Rue et numéro">
+        </div>
+        <div class="field">
+          <label>Code postal</label>
+          <input type="text" id="cp" placeholder="5000">
+        </div>
+        <div class="field">
+          <label>Ville</label>
+          <input type="text" id="ville" placeholder="Namur">
+        </div>
+        <div class="field">
+          <label>Téléphone *</label>
+          <input type="tel" id="tel" placeholder="+32 4xx xxx xxx">
+        </div>
+        <div class="field">
+          <label>E-mail *</label>
+          <input type="email" id="email" placeholder="prenom@societe.be">
+        </div>
+        <div class="field full">
+          <label>Société / Employeur</label>
+          <input type="text" id="societe" placeholder="Dénomination sociale">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② DOCS IDENTITÉ -->
+  <div class="card">
+    <div class="card-head"><div class="cnum">2</div><div class="ctitle">Documents d'identité du conducteur</div></div>
+    <div class="card-body">
+      <div class="photo-row">
+        <div class="photo-wrap">
+          <span class="plabel">Carte d'identité</span>
+          <div class="pzone" id="zone-ci">
+            <input type="file" accept="image/*" capture="environment" onchange="handlePhoto(this,'zone-ci','prev-ci')">
+            <div class="pz-check">✓</div>
+            <div class="pz-ico">🪪</div>
+            <div class="pz-lbl">Photo CI</div>
+            <div class="pz-sub">Recto / verso</div>
+            <img class="photo-preview" id="prev-ci" alt="">
+          </div>
+        </div>
+        <div class="photo-wrap">
+          <span class="plabel">Permis de conduire</span>
+          <div class="pzone" id="zone-permis">
+            <input type="file" accept="image/*" capture="environment" onchange="handlePhoto(this,'zone-permis','prev-permis')">
+            <div class="pz-check">✓</div>
+            <div class="pz-ico">🚗</div>
+            <div class="pz-lbl">Photo permis</div>
+            <div class="pz-sub">Recto</div>
+            <img class="photo-preview" id="prev-permis" alt="">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ PHOTOS VÉHICULE -->
+  <div class="card">
+    <div class="card-head"><div class="cnum">3</div><div class="ctitle">Photos du véhicule au départ</div></div>
+    <div class="card-body">
+      <div class="photo-row">
+        <div class="photo-wrap">
+          <span class="plabel">3/4 avant — plaque visible</span>
+          <div class="pzone" id="zone-veh1">
+            <input type="file" accept="image/*" capture="environment" onchange="handlePhoto(this,'zone-veh1','prev-veh1')">
+            <div class="pz-check">✓</div>
+            <div class="pz-ico">📸</div>
+            <div class="pz-lbl">3/4 avant</div>
+            <div class="pz-sub">Plaque lisible</div>
+            <img class="photo-preview" id="prev-veh1" alt="">
+          </div>
+        </div>
+        <div class="photo-wrap">
+          <span class="plabel">Numéro de châssis (VIN)</span>
+          <div class="pzone" id="zone-veh2">
+            <input type="file" accept="image/*" capture="environment" onchange="handlePhoto(this,'zone-veh2','prev-veh2')">
+            <div class="pz-check">✓</div>
+            <div class="pz-ico">🔍</div>
+            <div class="pz-lbl">Châssis / VIN</div>
+            <div class="pz-sub">Plaquette ou vitre</div>
+            <img class="photo-preview" id="prev-veh2" alt="">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ④ CGV + SIGNATURES -->
+  <div class="card">
+    <div class="card-head"><div class="cnum">4</div><div class="ctitle">Conditions de prêt & Signatures</div></div>
+    <div class="card-body">
+
+      <div class="cgv-box">
+        <h4>Article 1 — Objet du document</h4>
+        Le présent document formalise la mise à disposition temporaire et à titre gratuit d'un véhicule de démonstration appartenant au groupe Steveny (« le Prêteur ») à la personne désignée ci-dessus (« l'Emprunteur »), dans le cadre de la <strong>Steveny Fleet Experience</strong>. Ce document de prêt est établi au départ d'un train de véhicules et sera complété et annexé par un document de bord présent dans chaque véhicule, lequel permettra de confirmer les heures de départ des différents conducteurs. Le prêt est consenti à des fins exclusives d'essai et d'évaluation commerciale du véhicule.
+
+        <h4>Article 2 — Conditions d'utilisation et engagement du conducteur</h4>
+        L'Emprunteur déclare être titulaire d'un permis de conduire en cours de validité correspondant à la catégorie du véhicule. Le véhicule est réservé à son usage personnel et exclusif. Tout sous-prêt est interdit. L'Emprunteur s'engage à respecter le Code de la Route belge. <strong>L'Emprunteur s'engage formellement à ne pas avoir consommé d'alcool lors de l'événement et à ne pas conduire sous l'influence de l'alcool ou de toute autre substance psychoactive.</strong> Le non-respect de cet engagement engage la responsabilité exclusive de l'Emprunteur.
+
+        <h4>Article 3 — Assurance & responsabilité</h4>
+        Le véhicule est couvert par la police RC auto de Steveny Group. En cas de sinistre, l'Emprunteur contacte immédiatement le conseiller fleet et remplit un constat amiable. Toute franchise résultant d'un sinistre pendant le prêt est à charge de l'Emprunteur. Les dommages issus d'une faute intentionnelle ou d'une utilisation non conforme lui sont entièrement imputés.
+
+        <h4>Article 4 — Infractions</h4>
+        L'Emprunteur est seul responsable des infractions commises pendant la période de prêt. Toute amende ou sanction lui sera intégralement répercutée.
+
+        <h4>Article 5 — Restitution</h4>
+        Le véhicule doit être restitué à l'heure indiquée dans le document de bord, dans l'état de départ, au lieu de l'événement. Tout retard doit être signalé immédiatement au conseiller fleet responsable.
+
+        <h4>Article 6 — Données personnelles</h4>
+        Les données collectées sont traitées par Steveny Group aux seules fins de gestion du prêt et de suivi commercial fleet. Elles ne sont pas transmises à des tiers. Conformément au RGPD, l'Emprunteur dispose d'un droit d'accès, de rectification et d'effacement : fleet@steveny.be.
+
+        <h4>Article 7 — Acceptation</h4>
+        En signant, l'Emprunteur et le conseiller fleet reconnaissent avoir pris connaissance des présentes conditions et les accepter sans réserve.
+      </div>
+
+      <div class="check-row">
+        <input type="checkbox" id="accept-cgv">
+        <label for="accept-cgv">L'emprunteur a lu et accepte sans réserve les conditions générales de prêt, y compris l'engagement de tolérance zéro alcool.</label>
+      </div>
+
+      <div class="div"></div>
+
+      <!-- Conseiller -->
+      <div style="margin-bottom:16px;">
+        <div class="field">
+          <label>Conseiller fleet *</label>
+          <select id="conseiller_nom">
+            <option value="">— Sélectionner le conseiller —</option>
+            <option>Alan Stenuit</option>
+            <option>Alexandre de Barquin</option>
+            <option>Benoit Henry de Frahan</option>
+            <option>Bruno Henry</option>
+            <option>Caroline Dzierla</option>
+            <option>Christophe Werry</option>
+            <option>Daniel Herman</option>
+            <option>Danny Bultot</option>
+            <option>David Morier</option>
+            <option>Didier Kairis</option>
+            <option>Dimitri Gose</option>
+            <option>Felise François</option>
+            <option>Francesco Domino</option>
+            <option>François-Xavier Beaupain</option>
+            <option>Frédéric Van der Maelen</option>
+            <option>Gaetan Poty</option>
+            <option>Gary Carpiaux</option>
+            <option>Geoffrey Deboulle</option>
+            <option>Geoffrey Demeffe</option>
+            <option>Gil Goffin</option>
+            <option>Gilles Ameels</option>
+            <option>Gregory Cacciatore</option>
+            <option>Hassan Mohammed</option>
+            <option>Ingrid Hortvath</option>
+            <option>Jean-Christophe Francotte</option>
+            <option>Jean-Marc Van Droogenbroek</option>
+            <option>Johan Heuschamps</option>
+            <option>Khirdinne Belloum</option>
+            <option>Laurent Brison</option>
+            <option>Laurent Teman</option>
+            <option>Logan Dasnois</option>
+            <option>Luca Bozzi</option>
+            <option>Marceau Plisnier</option>
+            <option>Marceau Wattilon</option>
+            <option>Martin Collard</option>
+            <option>Matthieu Saint</option>
+            <option>Maxime Pairoux</option>
+            <option>Michael Steveny</option>
+            <option>Michaël Steveny</option>
+            <option>Michel Gaspard</option>
+            <option>Michel Maulelon</option>
+            <option>Miguel Lemoine</option>
+            <option>Pascal Rouard</option>
+            <option>Paul-Henry Flyppo</option>
+            <option>Philippe Steveny</option>
+            <option>Pierre Delaey</option>
+            <option>René Steveny</option>
+            <option>Sandrine Dubois</option>
+            <option>Sanny Guns</option>
+            <option>Société</option>
+            <option>Thibaud Sys</option>
+            <option>Thierry Jacquet</option>
+            <option>Thierry Lechien</option>
+            <option>Thomas Gilain</option>
+            <option>Tindaro Tassone</option>
+            <option>Tristan Dewal</option>
+            <option>Valentine Cardon</option>
+            <option>Vincent Finet</option>
+            <option>Vincent Teman</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Double signature -->
+      <div class="dual-sig">
+        <div class="sig-block">
+          <span class="sig-title">Signature du conducteur</span>
+          <div class="sig-wrap">
+            <canvas class="sig-canvas" id="sig-conducteur"></canvas>
+            <div class="sig-bar">
+              <span class="sig-hint">Conducteur</span>
+              <button class="btn-clear" onclick="clearSig('sig-conducteur')">Effacer</button>
+            </div>
+          </div>
+        </div>
+        <div class="sig-block">
+          <span class="sig-title">Signature du conseiller fleet</span>
+          <div class="sig-wrap">
+            <canvas class="sig-canvas" id="sig-conseiller"></canvas>
+            <div class="sig-bar">
+              <span class="sig-hint">Conseiller</span>
+              <button class="btn-clear" onclick="clearSig('sig-conseiller')">Effacer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="status" class="status"></div>
+
+    </div>
+  </div>
+
+</div>
+
+<div class="gen-bar">
+  <div class="gen-hint">Coords · Photos · Signatures</div>
+  <button class="btn-gen" onclick="generatePDF()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5z"/></svg>
+    Générer le PDF
+  </button>
+</div>
+
+<script>
+// ── Photo handler
+function handlePhoto(input, zoneId, previewId) {
+  const file = input.files[0];
+  if (!file) return;
+  const zone = document.getElementById(zoneId);
+  const prev = document.getElementById(previewId);
+  const reader = new FileReader();
+  reader.onload = e => {
+    prev.src = e.target.result;
+    prev.style.display = 'block';
+    zone.querySelector('.pz-ico').style.display = 'none';
+    zone.querySelector('.pz-lbl').style.display = 'none';
+    zone.querySelector('.pz-sub').style.display = 'none';
+    zone.classList.add('ok');
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Signature pads
+const pads = {};
+
+function initPad(id) {
+  const canvas = document.getElementById(id);
+  const ctx = canvas.getContext('2d');
+  let drawing = false, lx = 0, ly = 0;
+
+  function resize() {
+    const w = canvas.parentElement.clientWidth;
+    const saved = canvas.toDataURL();
+    canvas.width = w; canvas.height = 120;
+    const img = new Image();
+    img.onload = () => ctx.drawImage(img, 0, 0);
+    img.src = saved;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  function xy(e) {
+    const r = canvas.getBoundingClientRect();
+    if (e.touches) return { x: e.touches[0].clientX - r.left, y: e.touches[0].clientY - r.top };
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+
+  canvas.addEventListener('mousedown',  e => { drawing = true; const p = xy(e); lx = p.x; ly = p.y; });
+  canvas.addEventListener('touchstart', e => { e.preventDefault(); drawing = true; const p = xy(e); lx = p.x; ly = p.y; }, {passive:false});
+
+  function draw(e) {
+    if (!drawing) return;
+    if (e.touches) e.preventDefault();
+    const p = xy(e);
+    ctx.beginPath(); ctx.strokeStyle = '#111'; ctx.lineWidth = 2.2;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.moveTo(lx, ly); ctx.lineTo(p.x, p.y); ctx.stroke();
+    lx = p.x; ly = p.y;
+  }
+
+  canvas.addEventListener('mousemove',  draw);
+  canvas.addEventListener('touchmove',  draw, {passive:false});
+  ['mouseup','mouseleave','touchend'].forEach(ev => canvas.addEventListener(ev, () => drawing = false));
+  pads[id] = { canvas, ctx };
+}
+
+initPad('sig-conducteur');
+initPad('sig-conseiller');
+
+function clearSig(id) { const p = pads[id]; p.ctx.clearRect(0, 0, p.canvas.width, p.canvas.height); }
+
+function isSigEmpty(id) {
+  const d = pads[id].ctx.getImageData(0, 0, pads[id].canvas.width, pads[id].canvas.height).data;
+  return !d.some(v => v > 0);
+}
+
+const v      = id => (document.getElementById(id)?.value || '').trim();
+const imgSrc = id => { const e = document.getElementById(id); return (e && e.style.display !== 'none' && e.src) ? e.src : null; };
+const DATE_FIXED = '22 mai 2026';
+
+function showStatus(msg, type) {
+  const el = document.getElementById('status');
+  el.textContent = msg; el.className = 'status ' + type;
+  el.scrollIntoView({behavior:'smooth', block:'nearest'});
+  setTimeout(() => el.className = 'status', 6000);
+}
+
+// ── PDF
+async function generatePDF() {
+  if (!v('nom') || !v('prenom'))                       { showStatus('Nom et prénom du conducteur requis.', 'err'); return; }
+  if (!v('tel') && !v('email'))                        { showStatus('Au moins un contact (tél. ou e-mail) requis.', 'err'); return; }
+  if (!v('conseiller_nom'))                            { showStatus('Veuillez sélectionner le conseiller fleet.', 'err'); return; }
+  if (!document.getElementById('accept-cgv').checked) { showStatus('Veuillez accepter les conditions générales.', 'err'); return; }
+  if (isSigEmpty('sig-conducteur'))                    { showStatus('Signature du conducteur requise.', 'err'); return; }
+  if (isSigEmpty('sig-conseiller'))                    { showStatus('Signature du conseiller fleet requise.', 'err'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const W = 210, M = 14;
+  let y = 0;
+  const refId = new Date().getTime().toString(36).toUpperCase();
+
+  function addHeader(subtitle) {
+    doc.setFillColor(14, 14, 14);
+    doc.rect(0, 0, W, 26, 'F');
+    doc.setFillColor(227, 0, 15);
+    doc.rect(0, 26, W, 2.5, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16); doc.setFont('helvetica','bold');
+    doc.text('STEVENY GROUP', M, 11);
+    doc.setFontSize(8); doc.setFont('helvetica','normal');
+    doc.setTextColor(170, 170, 170);
+    doc.text(subtitle, M, 19);
+    doc.text('Réf. ' + refId + '  ·  ' + DATE_FIXED, W - M, 19, {align:'right'});
+  }
+
+  function addFooter(page, total) {
+    const pH = 297;
+    doc.setFillColor(14, 14, 14);
+    doc.rect(0, pH - 11, W, 11, 'F');
+    doc.setFillColor(227, 0, 15);
+    doc.rect(0, pH - 11, W, 1, 'F');
+    doc.setTextColor(160, 160, 160); doc.setFontSize(7); doc.setFont('helvetica','normal');
+    doc.text('Steveny Group — Steveny Fleet Experience · Réf. ' + refId + ' · Document confidentiel', M, pH - 5);
+    doc.text('Page ' + page + '/' + total + '  ·  fleet@steveny.be', W - M, pH - 5, {align:'right'});
+  }
+
+  function sHead(label, yp) {
+    doc.setFillColor(36, 36, 36);
+    doc.rect(M, yp, W - 2*M, 8, 'F');
+    doc.setFillColor(227, 0, 15);
+    doc.rect(M, yp, 2, 8, 'F');
+    doc.setFontSize(8); doc.setFont('helvetica','bold');
+    doc.setTextColor(255, 255, 255);
+    doc.text(label, M + 5, yp + 5.3);
+    return yp + 11;
+  }
+
+  function fld(label, value, x, yp, w) {
+    doc.setFontSize(7); doc.setFont('helvetica','normal');
+    doc.setTextColor(120, 120, 120);
+    doc.text(label.toUpperCase(), x, yp);
+    doc.setFontSize(10); doc.setFont('helvetica','bold');
+    doc.setTextColor(20, 20, 20);
+    doc.text(value || '—', x, yp + 5);
+    doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.25);
+    doc.line(x, yp + 6, x + w, yp + 6);
+    return yp + 10;
+  }
+
+  function addImg(src, x, yp, w, h) {
+    if (!src) {
+      doc.setFontSize(8); doc.setFont('helvetica','italic'); doc.setTextColor(160,160,160);
+      doc.text('Non fourni', x + w/2, yp + h/2, {align:'center'});
+      return;
+    }
+    try { doc.addImage(src, 'JPEG', x, yp, w, h, undefined, 'FAST'); }
+    catch(e) {
+      try { doc.addImage(src, 'PNG', x, yp, w, h, undefined, 'FAST'); }
+      catch(e2) {
+        doc.setFontSize(8); doc.setFont('helvetica','italic'); doc.setTextColor(160,160,160);
+        doc.text('Image non rendue', x + w/2, yp + h/2, {align:'center'});
+      }
+    }
+  }
+
+  const half = (W - 2*M - 6) / 2;
+
+  // ═══════════════════════════════
+  // PAGE 1 — Conducteur + docs + CGV + signatures
+  // ═══════════════════════════════
+  addHeader('STEVENY FLEET EXPERIENCE — DOCUMENT DE DÉPART D\'ESSAI');
+  y = 34;
+
+  // Section 1 — Conducteur
+  y = sHead('1 — COORDONNÉES DU CONDUCTEUR', y);
+  fld('Civilité', v('civilite'), M, y, 20);
+  fld('Date', DATE_FIXED, M + 24, y, half - 24);
+  y += 10;
+  fld('Nom', v('nom'), M, y, half);
+  fld('Prénom', v('prenom'), M + half + 6, y, half);
+  y += 10;
+  fld('Adresse', v('adresse'), M, y, W - 2*M);
+  y += 10;
+  fld('CP', v('cp'), M, y, 24);
+  fld('Ville', v('ville'), M + 28, y, half - 28);
+  fld('Société', v('societe'), M + half + 6, y, half);
+  y += 10;
+  fld('Téléphone', v('tel'), M, y, half);
+  fld('E-mail', v('email'), M + half + 6, y, half);
+  y += 14;
+
+  // Section 2 — Docs identité
+  y = sHead('2 — DOCUMENTS D\'IDENTITÉ', y);
+  const phW = (W - 2*M - 6) / 2;
+  const phH = 38;
+  doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(120,120,120);
+  doc.text('CARTE D\'IDENTITÉ', M, y + 2.5);
+  doc.text('PERMIS DE CONDUIRE', M + phW + 6, y + 2.5);
+  y += 5;
+  doc.setFillColor(240,240,240);
+  doc.rect(M, y, phW, phH, 'F');
+  doc.rect(M + phW + 6, y, phW, phH, 'F');
+  addImg(imgSrc('prev-ci'), M, y, phW, phH);
+  addImg(imgSrc('prev-permis'), M + phW + 6, y, phW, phH);
+  y += phH + 12;
+
+  // Section 3 — CGV + signatures
+  y = sHead('3 — CONDITIONS DE PRÊT — ACCEPTATION', y);
+
+  const cgvLines = [
+    'Ce document est établi au départ de la Steveny Fleet Experience, dans le cadre d\'un train de véhicules.',
+    'Il sera complété et annexé par un document de bord présent dans chaque véhicule afin de confirmer',
+    'les heures de départ des différents conducteurs.',
+    'L\'Emprunteur s\'engage à respecter le Code de la Route belge et certifie ne pas avoir consommé',
+    'd\'alcool lors de l\'événement. Toute franchise sinistre et toute infraction sont à sa charge.',
+    'En signant, les deux parties acceptent sans réserve les conditions générales de Steveny Group.'
+  ];
+  doc.setFontSize(8); doc.setFont('helvetica','italic'); doc.setTextColor(60,60,60);
+  cgvLines.forEach(l => { doc.text(l, M, y); y += 4.4; });
+  y += 5;
+
+  const fullName = ((v('civilite') ? v('civilite') + ' ' : '') + v('prenom') + ' ' + v('nom')).trim();
+  doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(20,20,20);
+  doc.text('Je soussigné(e) ' + fullName + ', reconnais avoir lu et accepte sans réserve les conditions', M, y);
+  y += 4.5;
+  doc.text('générales de prêt de véhicule de la Steveny Fleet Experience du Groupe Steveny.', M, y);
+  y += 10;
+
+  // Signatures
+  const sigW = (W - 2*M - 8) / 2;
+  const sigH = 28;
+  const cx = M + sigW + 8;
+
+  doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(80,80,80);
+  doc.text('CONDUCTEUR — ' + fullName.toUpperCase(), M, y);
+  doc.text('CONSEILLER FLEET — ' + v('conseiller_nom').toUpperCase(), cx, y);
+  y += 3;
+
+  doc.setFillColor(248,248,248);
+  doc.rect(M, y, sigW, sigH, 'F');
+  doc.setDrawColor(200,200,200); doc.setLineWidth(0.3);
+  doc.rect(M, y, sigW, sigH, 'S');
+  addImg(pads['sig-conducteur'].canvas.toDataURL('image/png'), M + 1, y + 1, sigW - 2, sigH - 2);
+
+  doc.setFillColor(248,248,248);
+  doc.rect(cx, y, sigW, sigH, 'F');
+  doc.rect(cx, y, sigW, sigH, 'S');
+  addImg(pads['sig-conseiller'].canvas.toDataURL('image/png'), cx + 1, y + 1, sigW - 2, sigH - 2);
+
+  y += sigH + 5;
+  doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(130,130,130);
+  doc.text('Signature conducteur', M, y);
+  doc.text('Signature conseiller fleet', cx, y);
+
+  addFooter(1, 2);
+
+  // ═══════════════════════════════
+  // PAGE 2 — Photos véhicule
+  // ═══════════════════════════════
+  doc.addPage();
+  addHeader('STEVENY FLEET EXPERIENCE — PHOTOS VÉHICULE AU DÉPART');
+  y = 34;
+
+  // Rappel conducteur / conseiller
+  doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(60,60,60);
+  doc.text('Conducteur : ' + fullName + (v('societe') ? '  ·  ' + v('societe') : '') + '  ·  Conseiller : ' + v('conseiller_nom'), M, y);
+  y += 10;
+
+  y = sHead('4 — PHOTOS DU VÉHICULE — ÉTAT AU DÉPART', y);
+
+  const vW = W - 2*M;
+  const vH = 94;
+
+  doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(120,120,120);
+  doc.text('VUE 3/4 AVANT — PLAQUE D\'IMMATRICULATION VISIBLE', M, y + 2.5);
+  y += 5;
+  doc.setFillColor(240,240,240); doc.rect(M, y, vW, vH, 'F');
+  addImg(imgSrc('prev-veh1'), M, y, vW, vH);
+  y += vH + 10;
+
+  doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(120,120,120);
+  doc.text('NUMÉRO DE CHÂSSIS (VIN)', M, y + 2.5);
+  y += 5;
+  doc.setFillColor(240,240,240); doc.rect(M, y, vW, vH, 'F');
+  addImg(imgSrc('prev-veh2'), M, y, vW, vH);
+  y += vH + 12;
+
+  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(80,80,80);
+  doc.text('Les photos ci-dessus ont été prises au départ de l\'essai et attestent de l\'état du véhicule', M, y);
+  y += 4.5;
+  doc.text('au moment de la prise en charge par l\'Emprunteur dans le cadre de la Steveny Fleet Experience.', M, y);
+
+  addFooter(2, 2);
+
+  // ── Save
+  const fn = 'SFE_' + (v('nom') || 'client').replace(/\s+/g,'_').toUpperCase() + '_' + v('conseiller_nom').split(' ').pop().toUpperCase() + '.pdf';
+  doc.save(fn);
+  showStatus('✓ PDF généré : ' + fn, 'ok');
+}
+</script>
+</body>
+</html>
